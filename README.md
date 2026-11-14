@@ -140,7 +140,3 @@ NestJS 12 · TypeScript · Prisma (PostgreSQL / Neon) · Swagger (`@nestjs/swagg
 ## Intégration continue
 
 Le workflow `.github/workflows/test.yml` compile le projet et lance les tests à chaque `push`. Sur le dépôt de départ, les tests des étapes échouent volontairement : l'étape correspondante est marquée « échec ignoré » dans GitHub Actions.
-
----
-
-*Note : ce sujet de TP et ses tests ont été rédigés avec l'aide d'une intelligence artificielle générative (Claude, Anthropic), conformément aux exigences de l'UE.*
