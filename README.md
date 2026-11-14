@@ -69,17 +69,17 @@ Le script sauvegarde d'abord votre dossier `src/` dans `.rattrapage-backup/`, pu
 
 ```bash
 # macOS / Linux / Git Bash
-SOLUTIONS_URL=https://github.com/<OWNER>/tp-nestjs-solutions npm run rattrapage -- 2
+SOLUTIONS_URL=https://github.com/LaCoir/tp-nestjs-solutions npm run rattrapage -- 2
 
 # PowerShell
-$env:SOLUTIONS_URL="https://github.com/<OWNER>/tp-nestjs-solutions"; npm run rattrapage -- 2
+$env:SOLUTIONS_URL="https://github.com/LaCoir/tp-nestjs-solutions"; npm run rattrapage -- 2
 ```
 
 <details>
 <summary>Commandes Git équivalentes (sans le script)</summary>
 
 ```bash
-git remote add solutions https://github.com/<OWNER>/tp-nestjs-solutions
+git remote add solutions https://github.com/LaCoir/tp-nestjs-solutions
 git fetch solutions etape-2
 git checkout solutions/etape-2 -- src
 ```

@@ -15,7 +15,7 @@ import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 
 const SOLUTIONS_URL =
-  process.env.SOLUTIONS_URL ?? 'https://github.com/<OWNER>/tp-nestjs-solutions';
+  process.env.SOLUTIONS_URL ?? 'https://github.com/LaCoir/tp-nestjs-solutions';
 const REMOTE = 'solutions';
 const VALID = ['0', '1', '2', '3', '4', 'bonus'];
 
@@ -36,7 +36,7 @@ if (!step || !VALID.includes(step)) {
   fail(`Usage : npm run rattrapage -- <${VALID.join('|')}>\n   Exemple : npm run rattrapage -- 2`);
 }
 
-if (SOLUTIONS_URL.includes('<OWNER>')) {
+if (SOLUTIONS_URL.includes('LaCoir')) {
   fail(
     "L'adresse du dépôt solutions n'est pas configurée.\n" +
       "   Demandez l'URL à l'enseignant, puis relancez avec :\n" +

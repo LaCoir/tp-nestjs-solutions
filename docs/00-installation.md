@@ -23,7 +23,7 @@
 
 ## 2. Créer votre dépôt à partir du modèle
 
-1. Ouvrez l'adresse du dépôt modèle donnée par l'enseignant (`https://github.com/<OWNER>/tp-nestjs-bons-comptes`).
+1. Ouvrez l'adresse du dépôt modèle donnée par l'enseignant (`https://github.com/LaCoir/tp-nestjs-bons-comptes`).
 2. Cliquez sur le bouton vert **« Use this template »** → **« Create a new repository »**.
 3. Choisissez votre compte comme propriétaire, un nom (par ex. `tp-nestjs-bons-comptes`), visibilité **Private** de préférence, puis **Create repository**.
 
