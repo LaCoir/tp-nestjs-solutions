@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 
+// Surchargeable avec la variable d'environnement SOLUTIONS_URL.
 const SOLUTIONS_URL =
   process.env.SOLUTIONS_URL ?? 'https://github.com/LaCoir/tp-nestjs-solutions';
 const REMOTE = 'solutions';
@@ -34,18 +35,6 @@ const step = args.find((arg) => !arg.startsWith('-'));
 
 if (!step || !VALID.includes(step)) {
   fail(`Usage : npm run rattrapage -- <${VALID.join('|')}>\n   Exemple : npm run rattrapage -- 2`);
-}
-
-if (SOLUTIONS_URL.includes('LaCoir')) {
-  fail(
-    "L'adresse du dépôt solutions n'est pas configurée.\n" +
-      "   Demandez l'URL à l'enseignant, puis relancez avec :\n" +
-      '   SOLUTIONS_URL=https://github.com/<proprietaire>/tp-nestjs-solutions npm run rattrapage -- ' +
-      step +
-      '\n   (PowerShell : $env:SOLUTIONS_URL="https://..." ; npm run rattrapage -- ' +
-      step +
-      ')',
-  );
 }
 
 try {
