@@ -120,18 +120,14 @@ await this.prisma.wallet.update({
 npm run test:etape2
 ```
 
-Avec Swagger, `POST /wallets/{walletId}/expenses` :
+Rechargez Swagger : `POST /wallets/{walletId}/expenses` apparaît, avec le corps attendu (`title`, `amount`, `date`…). Les tests vérifient les cas importants : une dépense valide est créée (`201`, le dépenseur est vous) ; `amount` à `0`, négatif ou à virgule (`12.5`) est refusé avec `400` ; un champ inconnu est refusé ; un porte-monnaie clôturé répond `409`.
 
-```json
-{ "title": "Courses", "amount": 4599, "date": "2026-10-25" }
-```
-
-Réponse attendue : `201` avec la dépense créée (le dépenseur est vous). Essayez ensuite `"amount": 0` ou `"amount": 12.5` : vous devez obtenir `400` avec un message qui explique l'erreur. Rappelez `GET /wallets/{walletId}/expenses` : la dépense apparaît et le total a augmenté.
+Sauvegardez votre travail sur votre branche personnelle :
 
 ```bash
-curl -X POST http://localhost:3000/wallets/<walletId>/expenses \
-  -H "Authorization: Bearer <accessToken>" -H "Content-Type: application/json" \
-  -d '{"title":"Courses","amount":4599,"date":"2026-10-25"}'
+git add -A
+git commit -m "étape 2"
+git push
 ```
 
 ## 6. Bloqué ?

@@ -25,9 +25,9 @@ function byUserId(a: { userId: string }, b: { userId: string }) {
 }
 
 /**
- * TODO étape 4 : calculez la part et le solde de chaque membre.
+ * TODO bonus : calculez la part et le solde de chaque membre.
  *
- * Règles (voir docs/etape-4.md) :
+ * Règles (voir docs/bonus.md) :
  *  - Tous les montants sont des ENTIERS en centimes (jamais de nombres à virgule).
  *  - Chaque membre doit la même part : total / nombre de membres.
  *  - Le total ne se divise pas toujours exactement : le reste de la division
@@ -48,7 +48,7 @@ export function calculateBalances(
   void totalAmount;
   void members;
   void byUserId;
-  throw new Error('TODO étape 4 : calculateBalances n’est pas encore écrite.');
+  throw new Error('TODO bonus : calculateBalances n’est pas encore écrite.');
 }
 
 function byAmountThenUserId(
@@ -95,17 +95,4 @@ export function computeTransfers(
   }
 
   return transfers;
-}
-
-/**
- * TODO bonus : renvoyez le plus PETIT nombre possible de virements qui soldent
- * tous les comptes (le glouton de computeTransfers n'est pas toujours optimal).
- * Piste : trouver un maximum de sous-groupes dont la somme des soldes vaut 0 ;
- * un groupe de k personnes se règle en k - 1 virements.
- */
-export function minimizeTransfers(
-  balances: { userId: string; balance: number }[],
-): Transfer[] {
-  void balances;
-  throw new Error('TODO bonus : minimizeTransfers n’est pas encore écrite.');
 }

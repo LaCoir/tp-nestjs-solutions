@@ -35,6 +35,14 @@
    cd tp-nestjs-bons-comptes
    code .
    ```
+5. **Créez votre branche personnelle** `prenom-tp-nestjs` (par exemple `lan-tp-nestjs`) et poussez-la :
+
+   ```bash
+   git switch -c prenom-tp-nestjs
+   git push -u origin prenom-tp-nestjs
+   ```
+
+   Vous travaillerez **uniquement sur cette branche** pendant tout le TP. Après chaque étape : `git add -A`, `git commit -m "étape 1"`, `git push`.
 
 ## 3. Installer les dépendances
 
@@ -54,21 +62,9 @@ cp .env.example .env
 Copy-Item .env.example .env
 ```
 
-Ouvrez `.env` et complétez :
+**Il n'y a rien à compléter.** Ce TP n'utilise **aucune base de données** : les tests tournent sur une fausse base en mémoire. Le fichier `.env` ne contient que des valeurs factices qui permettent au serveur de démarrer pour afficher Swagger.
 
-1. **`DATABASE_URL`** : collez l'URL de la base Neon communiquée par l'enseignant le jour de la séance. Elle ressemble à :
-   `postgresql://…@…-pooler.….neon.tech/…?sslmode=require&pgbouncer=true&connection_limit=3&connect_timeout=15`
-   - le nom d'hôte contient **`-pooler`** ;
-   - elle se termine par `pgbouncer=true&connection_limit=3` : ne retirez pas ces paramètres, ils évitent de saturer la base partagée.
-2. **`JWT_SECRET`** et **`JWT_REFRESH_SECRET`** : deux chaînes aléatoires **différentes**, propres à votre poste. Générez-les avec :
-
-   ```bash
-   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-   ```
-
-   (lancez la commande deux fois, une par secret).
-
-> 🔒 Le fichier `.env` contient des secrets : il est ignoré par Git. **Ne le commitez jamais** et ne le partagez pas.
+> Le fichier `.env` est ignoré par Git : ne le commitez pas.
 
 ## 5. Vérifier que tout démarre
 
@@ -77,7 +73,7 @@ npm run build          # doit se terminer sans erreur
 npm run start:dev      # démarre le serveur en mode « watch »
 ```
 
-Vous devez voir `Nest application successfully started`. Ouvrez ensuite **Swagger** : <http://localhost:3000/api/docs>.
+Vous devez voir `Nest application successfully started`. Ouvrez ensuite **Swagger** : <http://localhost:3000/api/docs>. (Aucune base n'est nécessaire pour démarrer.)
 
 Arrêtez le serveur avec `Ctrl+C`. Lancez enfin les tests :
 
@@ -85,22 +81,18 @@ Arrêtez le serveur avec `Ctrl+C`. Lancez enfin les tests :
 npm run test:etapes
 ```
 
-Les tests des étapes 1 à 4 sont **rouges** : c'est normal, ils passeront au fil du TP. Pour vérifier que le reste de l'application est sain : `npx vitest run src` doit être entièrement vert.
+Les tests des étapes 1 à 3 sont **rouges** : c'est normal, ils passeront au fil du TP. Pour vérifier que le reste de l'application est sain : `npx vitest run src` doit être entièrement vert.
 
 ## 6. Découvrir le projet avec Swagger (étape 0 — 10 min en séance)
 
-Swagger est la documentation interactive de l'API. Il permet d'envoyer des requêtes sans écrire de code.
+Swagger est la **documentation interactive** de l'API : la liste de toutes les routes, avec ce qu'elles reçoivent et ce qu'elles renvoient.
 
-1. **Créer un compte** : `POST /users` → *Try it out* avec
-   ```json
-   { "email": "prenom.nom+test1@exemple.fr", "name": "Prénom Nom", "password": "motdepasse123" }
-   ```
-2. **Se connecter** : `POST /auth/login` avec l'e-mail et le mot de passe. Copiez la valeur de `accessToken` dans la réponse.
-3. **S'authentifier dans Swagger** : cliquez sur le bouton **Authorize** 🔒 en haut à droite, collez le jeton (sans le mot « Bearer »), puis *Authorize*. Toutes les routes protégées utiliseront maintenant ce jeton.
-4. **Créer un porte-monnaie** : `POST /wallets` avec `{ "title": "Week-end test" }`. Notez son `id`.
-5. Explorez `GET /wallets`, `GET /wallets/{id}`. La section **expenses** est vide : elle sera remplie par *vous*.
+> ℹ️ Comme il n'y a **pas de base de données**, le bouton *Try it out* ne fonctionne pas (les requêtes qui lisent ou écrivent des données échouent). Swagger sert ici à **lire le contrat de l'API** ; c'est la commande `npm run test:etapeN` qui vérifie que votre code se comporte correctement.
 
-Pour tester les dépenses à plusieurs, créez un second compte, invitez-le (`POST /wallets/{walletId}/invitations` avec son e-mail), puis connectez-vous avec lui et acceptez l'invitation (`GET /invitations`, `POST /invitations/{id}/accept`).
+1. Lancez `npm run start:dev` et ouvrez <http://localhost:3000/api/docs>.
+2. Parcourez les sections : **users**, **auth**, **wallets**, **invitations**… Dépliez une route (par exemple `POST /wallets`) : regardez le corps attendu (*Request body*), les codes de réponse possibles et les exemples.
+3. Repérez le bouton **Authorize** 🔒 : les routes protégées par `JwtAuthGuard` affichent un cadenas. Vous écrirez bientôt des routes protégées de la même façon.
+4. Cherchez la section **expenses** : elle est **vide**. Chaque route que vous écrivez y apparaîtra après rechargement de la page : c'est votre premier retour visuel.
 
 ### Visite guidée du code (5 minutes)
 
@@ -166,25 +158,23 @@ L'import d'une bibliothèque (`@nestjs/common`, `class-validator`…) ne prend *
 </details>
 
 <details>
-<summary><strong><code>Environment variable not found: DATABASE_URL</code> ou <code>JWT_SECRET</code> manquant</strong></summary>
+<summary><strong><code>Missing JWT_SECRET</code> / <code>JWT_SECRET</code> manquant au démarrage</strong></summary>
 
-Le fichier `.env` n'existe pas, est vide, ou n'est pas à la racine du projet (à côté de `package.json`). Refaites l'étape 4. Redémarrez le serveur après toute modification.
-
-</details>
-
-<details>
-<summary><strong><code>Can't reach database server</code>, <code>P1001</code>, délai dépassé</strong></summary>
-
-- La base Neon se met en veille : relancez, le premier appel peut prendre quelques secondes.
-- Vérifiez que l'URL est exactement celle donnée par l'enseignant (sans espace, entre guillemets).
-- Vérifiez votre connexion réseau (certains réseaux bloquent le port PostgreSQL 5432 : essayez un partage de connexion).
+Le fichier `.env` n'existe pas ou n'est pas à la racine du projet (à côté de `package.json`). Refaites la section 4 (copie de `.env.example`). Redémarrez le serveur après toute modification.
 
 </details>
 
 <details>
-<summary><strong><code>Too many connections</code> / <code>P2037</code></strong></summary>
+<summary><strong>Je n'ai pas de base de données : est-ce normal ?</strong></summary>
 
-La base est partagée par toute la classe. Conservez `connection_limit=3` dans l'URL et n'ouvrez qu'**un seul** serveur (`start:dev`) à la fois.
+Oui. Les tests utilisent une fausse base en mémoire ; il n'y a rien à installer ni à configurer. Les requêtes envoyées depuis Swagger (*Try it out*) qui touchent aux données échouent : c'est attendu.
+
+</details>
+
+<details>
+<summary><strong><code>git push</code> demande une authentification / est refusé</strong></summary>
+
+Connectez-vous à GitHub depuis VS Code (ou installez le *Git Credential Manager*), puis refaites `git push -u origin prenom-tp-nestjs`. Vérifiez que vous poussez bien **votre** dépôt (`git remote -v`).
 
 </details>
 
@@ -192,12 +182,5 @@ La base est partagée par toute la classe. Conservez `connection_limit=3` dans l
 <summary><strong>Les tests sont tous rouges au démarrage</strong></summary>
 
 C'est attendu : ils vérifient le code que vous allez écrire. Lisez le message d'échec : il indique la valeur attendue et la valeur reçue.
-
-</details>
-
-<details>
-<summary><strong>Swagger affiche 401 « Unauthorized »</strong></summary>
-
-Le jeton a expiré (durée de vie courte) ou n'a pas été saisi : reconnectez-vous avec `POST /auth/login`, puis cliquez sur **Authorize** et collez le nouveau `accessToken`.
 
 </details>

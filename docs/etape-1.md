@@ -130,20 +130,15 @@ npm run test:etape1
 
 Tous les tests de l'étape 1 doivent être verts.
 
-Vérification « pour de vrai » avec Swagger (<http://localhost:3000/api/docs>, après *Authorize*) :
-`GET /wallets/{walletId}/expenses` avec l'identifiant d'un de vos porte-monnaies. Réponse attendue : `200` avec
+Avec `npm run start:dev`, rechargez Swagger (<http://localhost:3000/api/docs>) : la route `GET /wallets/{walletId}/expenses` doit maintenant apparaître dans la section **expenses**, avec le cadenas 🔒 (route protégée). *Try it out* ne fonctionne pas sans base de données : ce sont les tests qui font foi.
 
-```json
-{ "items": [], "totalAmount": 0 }
-```
-
-Ou avec curl (remplacez le jeton et l'identifiant) :
+Sauvegardez votre travail sur votre branche personnelle :
 
 ```bash
-curl http://localhost:3000/wallets/<walletId>/expenses -H "Authorization: Bearer <accessToken>"
+git add -A
+git commit -m "étape 1"
+git push
 ```
-
-Essayez aussi avec un identifiant inexistant (`404`) et avec le jeton d'un utilisateur non membre (`403`).
 
 ## 6. Bloqué ?
 
