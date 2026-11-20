@@ -1,187 +1,277 @@
-// Bonus — « Think HUGE » (facultatif)
+// Bonus — Clôture : qui doit payer / recevoir combien
 // Lancer : npm run test:bonus
-//
-// Trois défis indépendants :
-//   1. minimizeTransfers  (src/closure/balance-calculator.ts)
-//   2. pagination ?limit=&offset= (src/expenses/dto/list-expenses-query.dto.ts + service + contrôleur)
-//   3. TimingInterceptor  (src/common/interceptors/timing.interceptor.ts)
 import 'reflect-metadata';
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import request from 'supertest';
-import { lastValueFrom, of } from 'rxjs';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  computeTransfers,
-  minimizeTransfers,
-  type Transfer,
+  calculateBalances,
+  type MemberPayment,
 } from '../src/closure/balance-calculator.js';
-import { TimingInterceptor } from '../src/common/interceptors/timing.interceptor.js';
-import { ExpensesModule } from '../src/expenses/expenses.module.js';
+import { ClosureModule } from '../src/closure/closure.module.js';
 import {
   ALICE,
+  BOB,
+  CAROLE,
+  DAN,
   createTestApp,
   expectStatus,
   sampleData,
   type TestApp,
 } from './support/test-app.js';
 
-function settle(balances: { userId: string; balance: number }[], transfers: Transfer[]) {
-  const remaining = Object.fromEntries(balances.map((row) => [row.userId, row.balance]));
-  for (const transfer of transfers) {
-    remaining[transfer.fromUserId] += transfer.amount;
-    remaining[transfer.toUserId] -= transfer.amount;
-  }
-  return remaining;
+// Identifiants courts triés dans l'ordre alphabétique : a < b < c < d.
+const A = 'a';
+const B = 'b';
+const C = 'c';
+const D = 'd';
+
+const member = (userId: string, paidAmount: number): MemberPayment => ({
+  userId,
+  name: `Membre ${userId.toUpperCase()}`,
+  paidAmount,
+});
+
+// Appelle calculateBalances et indexe le résultat par userId.
+function compute(totalAmount: number, members: MemberPayment[]) {
+  const result = calculateBalances(totalAmount, members);
+  const byId = Object.fromEntries(
+    (result.balances ?? []).map((balance) => [balance.userId, balance]),
+  );
+  return { ...result, byId };
 }
 
-describe('Bonus 1 — minimizeTransfers (moins de virements possible)', () => {
-  // Deux groupes indépendants : {a, b, c} (−40 +100 −60) et {d, e, f} (+70 +100 −170).
-  // Minimum : 2 + 2 = 4 virements. Le glouton en propose 5.
-  const balances = [
-    { userId: 'a', balance: -4000 },
-    { userId: 'b', balance: 10000 },
-    { userId: 'c', balance: -6000 },
-    { userId: 'd', balance: 7000 },
-    { userId: 'e', balance: 10000 },
-    { userId: 'f', balance: -17000 },
-  ];
+function expectValue(label: string, expected: number, received: number | undefined) {
+  expect(
+    received,
+    `${label} — valeur attendue : ${expected} centimes, valeur reçue : ${received}`,
+  ).toBe(expected);
+}
 
-  it('le glouton de départ (computeTransfers) fait 5 virements sur cet exemple', () => {
-    expect(computeTransfers(balances).length).toBe(5);
+describe('Bonus — Clôture et calcul des soldes', () => {
+  describe('calculateBalances — cas simples (division exacte)', () => {
+    it('3 membres, 90,00 € au total : chacun doit 30,00 € (3000 centimes)', () => {
+      const { byId } = compute(9000, [member(A, 6000), member(B, 3000), member(C, 0)]);
+
+      expectValue('Part de A', 3000, byId[A]?.shareAmount);
+      expectValue('Part de B', 3000, byId[B]?.shareAmount);
+      expectValue('Part de C', 3000, byId[C]?.shareAmount);
+    });
+
+    it('solde = montant payé − part due (positif : à recevoir, négatif : à payer)', () => {
+      const { byId } = compute(9000, [member(A, 6000), member(B, 3000), member(C, 0)]);
+
+      expectValue('Solde de A (a payé 6000, doit 3000)', 3000, byId[A]?.balance);
+      expectValue('Solde de B (a payé 3000, doit 3000)', 0, byId[B]?.balance);
+      expectValue('Solde de C (a payé 0, doit 3000)', -3000, byId[C]?.balance);
+    });
+
+    it('conserve le nom et le montant payé de chaque membre', () => {
+      const { byId } = compute(9000, [member(A, 6000), member(B, 3000), member(C, 0)]);
+
+      expect(byId[A], 'Le résultat doit contenir une ligne pour le membre A.').toMatchObject({
+        userId: A,
+        name: 'Membre A',
+        paidAmount: 6000,
+      });
+    });
+
+    it('un seul membre : il doit tout, son solde est 0, aucun virement', () => {
+      const { byId, transfers } = compute(5000, [member(A, 5000)]);
+
+      expectValue('Part de A', 5000, byId[A]?.shareAmount);
+      expectValue('Solde de A', 0, byId[A]?.balance);
+      expect(transfers, `Aucun virement attendu — reçu : ${JSON.stringify(transfers)}`).toEqual([]);
+    });
+
+    it('total de 0 centime : toutes les parts et tous les soldes valent 0', () => {
+      const { byId } = compute(0, [member(A, 0), member(B, 0)]);
+
+      expectValue('Part de A', 0, byId[A]?.shareAmount);
+      expectValue('Solde de B', 0, byId[B]?.balance);
+    });
   });
 
-  it('minimizeTransfers solde tous les comptes', () => {
-    const transfers = minimizeTransfers(balances);
-    const remaining = settle(balances, transfers);
-    expect(
-      Object.values(remaining).every((value) => value === 0),
-      `Après les virements, tous les soldes devraient être 0 — reçu : ${JSON.stringify(remaining)}`,
-    ).toBe(true);
+  describe('calculateBalances — répartition du reste (centimes)', () => {
+    it('100,00 € à 3 (reste 1) : le premier userId paie 1 centime de plus (3334 / 3333 / 3333)', () => {
+      const { byId } = compute(10000, [member(A, 10000), member(B, 0), member(C, 0)]);
+
+      expectValue('Part de A (premier userId, reçoit le centime en plus)', 3334, byId[A]?.shareAmount);
+      expectValue('Part de B', 3333, byId[B]?.shareAmount);
+      expectValue('Part de C', 3333, byId[C]?.shareAmount);
+    });
+
+    it('100,01 € à 3 (reste 2) : les DEUX premiers userId paient 1 centime de plus (3334 / 3334 / 3333)', () => {
+      const { byId } = compute(10001, [member(A, 0), member(B, 0), member(C, 10001)]);
+
+      expectValue('Part de A', 3334, byId[A]?.shareAmount);
+      expectValue('Part de B', 3334, byId[B]?.shareAmount);
+      expectValue('Part de C', 3333, byId[C]?.shareAmount);
+    });
+
+    it('le reste suit l’ordre des userId, quel que soit l’ordre des membres reçus', () => {
+      // Membres fournis dans le désordre : C, A, B.
+      const { byId } = compute(10000, [member(C, 0), member(A, 10000), member(B, 0)]);
+
+      expectValue('Part de A (userId le plus petit)', 3334, byId[A]?.shareAmount);
+      expectValue('Part de B', 3333, byId[B]?.shareAmount);
+      expectValue('Part de C', 3333, byId[C]?.shareAmount);
+    });
+
+    it('exemple de la fiche : 100,00 € payés par A, soldes +6666 / −3333 / −3333', () => {
+      const { byId } = compute(10000, [member(A, 10000), member(B, 0), member(C, 0)]);
+
+      expectValue('Solde de A', 6666, byId[A]?.balance);
+      expectValue('Solde de B', -3333, byId[B]?.balance);
+      expectValue('Solde de C', -3333, byId[C]?.balance);
+    });
+
+    it.each([0, 1, 2, 3, 99, 10000, 12345, 2_147_483_647])(
+      'avec un total de %i centimes et 4 membres : la somme des parts est exactement le total',
+      (total) => {
+        const { balances } = compute(total, [
+          member(A, total),
+          member(B, 0),
+          member(C, 0),
+          member(D, 0),
+        ]);
+        const sumOfShares = balances.reduce((sum, row) => sum + row.shareAmount, 0);
+
+        expect(
+          sumOfShares,
+          `Somme des parts — attendue : ${total}, reçue : ${sumOfShares}. Aucun centime ne doit être perdu ni créé.`,
+        ).toBe(total);
+      },
+    );
+
+    it('la somme des soldes de tous les membres vaut toujours 0', () => {
+      const { balances } = compute(12345, [
+        member(A, 5000),
+        member(B, 7345),
+        member(C, 0),
+        member(D, 0),
+      ]);
+      const sum = balances.reduce((total, row) => total + row.balance, 0);
+
+      expect(sum, `Somme des soldes — attendue : 0, reçue : ${sum}`).toBe(0);
+    });
+
+    it('toutes les valeurs sont des entiers (jamais de virgule)', () => {
+      const { balances } = compute(10000, [member(A, 10000), member(B, 0), member(C, 0)]);
+
+      for (const row of balances) {
+        expect(
+          Number.isInteger(row.shareAmount) && Number.isInteger(row.balance),
+          `Les montants de ${row.userId} doivent être entiers — part : ${row.shareAmount}, solde : ${row.balance}. Utilisez Math.floor et l'opérateur %.`,
+        ).toBe(true);
+      }
+    });
   });
 
-  it('minimizeTransfers trouve le minimum : 4 virements (et non 5)', () => {
-    const transfers = minimizeTransfers(balances);
-    expect(
-      transfers.length,
-      `Nombre de virements attendu : 4 — reçu : ${transfers.length}. Cherchez les sous-groupes dont la somme des soldes vaut 0.`,
-    ).toBe(4);
+  describe('calculateBalances — virements proposés', () => {
+    it('les débiteurs remboursent le créancier : B → A 3333 et C → A 3333', () => {
+      const { transfers } = compute(10000, [member(A, 10000), member(B, 0), member(C, 0)]);
+
+      expect(
+        transfers,
+        `Virements attendus : B→A 3333 et C→A 3333 — reçus : ${JSON.stringify(transfers)}. Renvoyez computeTransfers(balances).`,
+      ).toEqual([
+        { fromUserId: B, toUserId: A, amount: 3333 },
+        { fromUserId: C, toUserId: A, amount: 3333 },
+      ]);
+    });
+
+    it('une fois les virements faits, plus personne ne doit rien', () => {
+      const { balances, transfers } = compute(12345, [
+        member(A, 8000),
+        member(B, 4345),
+        member(C, 0),
+        member(D, 0),
+      ]);
+      const remaining = Object.fromEntries(balances.map((row) => [row.userId, row.balance]));
+      for (const transfer of transfers) {
+        remaining[transfer.fromUserId] += transfer.amount;
+        remaining[transfer.toUserId] -= transfer.amount;
+      }
+
+      expect(
+        remaining,
+        `Après les virements, tous les soldes devraient être 0 — reçu : ${JSON.stringify(remaining)}`,
+      ).toEqual({ [A]: 0, [B]: 0, [C]: 0, [D]: 0 });
+    });
   });
 
-  it('aucun virement quand tout le monde est à 0', () => {
-    expect(minimizeTransfers([{ userId: 'a', balance: 0 }, { userId: 'b', balance: 0 }])).toEqual([]);
-  });
+  describe('GET /wallets/:id/balance (ClosureService.getBalance)', () => {
+    let testApp: TestApp;
 
-  it('deux personnes : un seul virement', () => {
-    expect(
-      minimizeTransfers([
-        { userId: 'a', balance: 500 },
-        { userId: 'b', balance: -500 },
-      ]),
-    ).toEqual([{ fromUserId: 'b', toUserId: 'a', amount: 500 }]);
-  });
-});
+    afterEach(async () => {
+      await testApp?.app.close();
+    });
 
-describe('Bonus 2 — pagination de GET /wallets/:walletId/expenses', () => {
-  let testApp: TestApp;
+    async function start() {
+      testApp = await createTestApp({
+        imports: [ClosureModule],
+        data: sampleData(),
+      });
+      return request(testApp.app.getHttpServer());
+    }
 
-  afterEach(async () => {
-    await testApp?.app.close();
-  });
-
-  async function start() {
-    testApp = await createTestApp({ imports: [ExpensesModule], data: sampleData() });
-    return request(testApp.app.getHttpServer());
-  }
-
-  const titles = (body: { items: { title: string }[] }) => body.items.map((item) => item.title);
-
-  it('?limit=2 renvoie seulement les 2 premières dépenses (les plus récentes)', async () => {
-    const http = await start();
-    const response = await http.get('/wallets/w-open/expenses?limit=2').set('x-test-user', ALICE);
-
-    expectStatus(response, 200, 'La route doit accepter ?limit.');
-    expect(
-      response.body.items.length,
-      `2 éléments attendus — reçus : ${response.body.items.length}`,
-    ).toBe(2);
-  });
-
-  it('?limit=2&offset=2 renvoie la dépense suivante (la plus ancienne)', async () => {
-    const http = await start();
-    const response = await http
-      .get('/wallets/w-open/expenses?limit=2&offset=2')
-      .set('x-test-user', ALICE);
-
-    expectStatus(response, 200, 'La route doit accepter ?offset.');
-    expect(titles(response.body), 'Attendu : la 3e dépense, « Courses ».').toEqual(['Courses']);
-  });
-
-  it('le total concerne tout le porte-monnaie, pas seulement la page', async () => {
-    const http = await start();
-    const response = await http.get('/wallets/w-open/expenses?limit=1').set('x-test-user', ALICE);
-
-    expect(
-      response.body.totalAmount,
-      `totalAmount attendu : 9099 (toutes les dépenses) — reçu : ${response.body.totalAmount}`,
-    ).toBe(9099);
-  });
-
-  it('sans paramètre : toutes les dépenses (limite par défaut 20)', async () => {
-    const http = await start();
-    const response = await http.get('/wallets/w-open/expenses').set('x-test-user', ALICE);
-
-    expect(response.body.items.length).toBe(3);
-  });
-
-  it.each(['limit=0', 'limit=101', 'limit=abc', 'offset=-1'])(
-    'refuse (400) le paramètre invalide « %s »',
-    async (query) => {
+    it('renvoie le bilan d’un porte-monnaie clôturé (total, soldes, virements)', async () => {
+      // w-closed : une seule dépense de 9000 payée par Alice ; membres Alice et Bob.
       const http = await start();
-      const response = await http
-        .get(`/wallets/w-open/expenses?${query}`)
-        .set('x-test-user', ALICE);
+      const response = await http.get('/wallets/w-closed/balance').set('x-test-user', ALICE);
 
-      expectStatus(response, 400, 'Validez les paramètres avec class-validator (@IsInt, @Min, @Max).');
-    },
-  );
-});
+      expectStatus(
+        response,
+        200,
+        'ClosureService.getBalance doit utiliser checkClosedWalletAccess, loadBalanceData puis calculateBalances.',
+      );
+      expect(response.body.walletId).toBe('w-closed');
+      expect(
+        response.body.totalAmount,
+        `totalAmount attendu : 9000 — reçu : ${response.body.totalAmount}`,
+      ).toBe(9000);
 
-describe('Bonus 3 — TimingInterceptor', () => {
-  function context(response: { setHeader: (name: string, value: string) => void }) {
-    return {
-      switchToHttp: () => ({
-        getResponse: () => response,
-        getRequest: () => ({ method: 'GET', url: '/test' }),
-      }),
-    } as unknown as ExecutionContext;
-  }
+      const balances = Object.fromEntries(
+        (response.body.balances ?? []).map(
+          (row: { userId: string; balance: number }) => [row.userId, row.balance],
+        ),
+      );
+      expect(
+        balances,
+        `Soldes attendus : Alice +4500, Bob −4500 — reçus : ${JSON.stringify(balances)}`,
+      ).toEqual({ [ALICE]: 4500, [BOB]: -4500 });
+      expect(
+        response.body.transfers,
+        `Virement attendu : Bob → Alice 4500 — reçu : ${JSON.stringify(response.body.transfers)}`,
+      ).toEqual([{ fromUserId: BOB, toUserId: ALICE, amount: 4500 }]);
+    });
 
-  it('laisse passer la réponse inchangée', async () => {
-    const headers: Record<string, string> = {};
-    const handler: CallHandler = { handle: () => of({ ok: true }) };
-    const result = await lastValueFrom(
-      new TimingInterceptor().intercept(
-        context({ setHeader: (name, value) => (headers[name] = value) }),
-        handler,
-      ),
-    );
+    it('renvoie 409 si le porte-monnaie est encore ouvert', async () => {
+      const http = await start();
+      const response = await http.get('/wallets/w-open/balance').set('x-test-user', ALICE);
 
-    expect(result, 'L’intercepteur ne doit pas modifier le corps de la réponse.').toEqual({ ok: true });
-  });
+      expectStatus(response, 409, 'Appelez checkClosedWalletAccess avant tout calcul.');
+    });
 
-  it('ajoute l’en-tête X-Response-Time au format « 12ms »', async () => {
-    const headers: Record<string, string> = {};
-    const handler: CallHandler = { handle: () => of('ok') };
-    await lastValueFrom(
-      new TimingInterceptor().intercept(
-        context({ setHeader: (name, value) => (headers[name] = value) }),
-        handler,
-      ),
-    );
+    it('renvoie 403 si l’utilisateur n’est pas membre', async () => {
+      const http = await start();
+      const response = await http.get('/wallets/w-closed/balance').set('x-test-user', DAN);
 
-    expect(
-      headers['X-Response-Time'],
-      `En-tête « X-Response-Time » attendu au format « <nombre>ms » — reçu : ${JSON.stringify(headers)}`,
-    ).toMatch(/^\d+ms$/);
+      expectStatus(response, 403, 'Dan n’est pas membre de w-closed.');
+    });
+
+    it('renvoie 403 pour un simple invité', async () => {
+      const http = await start();
+      const response = await http.get('/wallets/w-closed/balance').set('x-test-user', CAROLE);
+
+      expectStatus(response, 403, 'Carole n’est pas membre de w-closed.');
+    });
+
+    it('renvoie 404 si le porte-monnaie n’existe pas', async () => {
+      const http = await start();
+      const response = await http.get('/wallets/inconnu/balance').set('x-test-user', ALICE);
+
+      expectStatus(response, 404, 'Porte-monnaie inconnu.');
+    });
   });
 });

@@ -1,7 +1,7 @@
 // Fausse base de données en mémoire, utilisée par les tests du TP.
 //
 // Elle imite la petite partie de Prisma dont vous avez besoin : les tests
-// tournent donc hors ligne et ne touchent JAMAIS la base Neon partagée.
+// tournent donc hors ligne, sans aucune base de données.
 // Vous n'avez pas besoin de lire ce fichier pour faire le TP.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

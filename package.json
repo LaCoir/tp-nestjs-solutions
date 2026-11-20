@@ -21,7 +21,6 @@
     "test:etape1": "vitest run test/etape-1.spec.ts",
     "test:etape2": "vitest run test/etape-2.spec.ts",
     "test:etape3": "vitest run test/etape-3.spec.ts",
-    "test:etape4": "vitest run test/etape-4.spec.ts",
     "test:etapes": "vitest run test/etape-",
     "test:bonus": "vitest run test/bonus.spec.ts",
     "rattrapage": "node scripts/rattrapage.mjs"
