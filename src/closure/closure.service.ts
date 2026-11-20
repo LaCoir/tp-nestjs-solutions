@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-// TODO étape 4 : import { calculateBalances } from './balance-calculator.js';
-// TODO étape 4 : import { loadBalanceData } from './balance-data.js';
+// TODO bonus : import { calculateBalances } from './balance-calculator.js';
+// TODO bonus : import { loadBalanceData } from './balance-data.js';
 
 const closedWalletSelect = {
   id: true,
@@ -62,7 +62,7 @@ export class ClosureService {
     });
   }
 
-  // TODO étape 4 : écrivez getBalance(walletId, userId) — le bilan d'un porte-monnaie CLÔTURÉ.
+  // TODO bonus : écrivez getBalance(walletId, userId) — le bilan d'un porte-monnaie CLÔTURÉ.
   //   1. await this.checkClosedWalletAccess(walletId, userId)   (fournie : 404 / 403 / 409)
   //   2. const data = await loadBalanceData(this.prisma, walletId)   (fournie : lit la base)
   //        → data.totalAmount : total des dépenses ; data.memberPayments : ce que chacun a payé
@@ -72,7 +72,7 @@ export class ClosureService {
   //   N'oubliez pas d'ajouter « calculateBalances » et « loadBalanceData » aux imports
   //   en haut du fichier, puis supprimez le « throw » ci-dessous.
   async getBalance(_walletId: string, _userId: string): Promise<unknown> {
-    throw new NotImplementedException('TODO étape 4 : ClosureService.getBalance');
+    throw new NotImplementedException('TODO bonus : ClosureService.getBalance');
   }
 
   private async checkClosedWalletAccess(walletId: string, userId: string) {

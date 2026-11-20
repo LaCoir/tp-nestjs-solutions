@@ -18,7 +18,7 @@ import { createInterface } from 'node:readline/promises';
 const SOLUTIONS_URL =
   process.env.SOLUTIONS_URL ?? 'https://github.com/LaCoir/tp-nestjs-solutions';
 const REMOTE = 'solutions';
-const VALID = ['0', '1', '2', '3', '4', 'bonus'];
+const VALID = ['0', '1', '2', '3', 'bonus'];
 
 function fail(message) {
   console.error(`\n❌ ${message}\n`);
@@ -80,11 +80,11 @@ try {
 } catch (error) {
   fail(
     `Échec de la récupération : ${error.stderr?.toString().trim() || error.message}\n` +
-      '   Vérifiez votre connexion et l’URL du dépôt (SOLUTIONS_URL).\n' +
+      '   Vérifiez votre connexion. Si le dépôt répond « not found », la solution de cette étape n’est pas encore publiée : demandez à l’enseignant.\n' +
       `   Votre travail est sauvegardé dans ${backup}/src`,
   );
 }
 
 console.log(`✅ src/ est maintenant à l'état « ${target} ».`);
-console.log('   Relancez les tests, par exemple : npm run test:etape' + (step === 'bonus' ? 's' : step));
+console.log('   Relancez les tests, par exemple : npm run ' + (step === 'bonus' ? 'test:bonus' : `test:etape${step}`));
 console.log(`   Pour annuler : copiez ${backup}/src vers src/.`);
