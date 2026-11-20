@@ -1,15 +1,12 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
+// La connexion à la base est ouverte à la première requête (comportement par
+// défaut de Prisma) : le serveur démarre donc même sans base de données.
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor() {
-    // Neon peut être lent à répondre (réveil, latence) : les valeurs par défaut (2 s / 5 s) provoquent des P2028.
     super({ transactionOptions: { maxWait: 10000, timeout: 15000 } });
-  }
-
-  async onModuleInit() {
-    await this.$connect();
   }
 
   async onModuleDestroy() {

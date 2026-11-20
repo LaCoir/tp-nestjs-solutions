@@ -151,15 +151,18 @@ Le guard doit être `@Injectable()` et son constructeur doit déclarer `PrismaSe
 npm run test:etape3
 ```
 
-Avec Swagger, à **deux utilisateurs** (créez un second compte, invitez-le, acceptez l'invitation — voir [la fiche d'installation](00-installation.md)) :
+Rechargez Swagger : `DELETE /wallets/{walletId}/expenses/{id}` apparaît. Les tests vérifient les trois cas à retenir :
 
-1. Alice déclare une dépense (étape 2) ;
-2. Bob (autre membre) tente `DELETE /wallets/{walletId}/expenses/{id}` → `403` ;
-3. Alice relance → `204`, puis `GET` : la dépense a disparu.
+1. le dépenseur ou le créateur supprime sa dépense → `204` ;
+2. un autre membre tente de supprimer → `403` (c'est le travail de votre `ExpenseOwnerGuard`) ;
+3. une dépense inexistante → `404`.
+
+Sauvegardez votre travail sur votre branche personnelle :
 
 ```bash
-curl -i -X DELETE http://localhost:3000/wallets/<walletId>/expenses/<expenseId> \
-  -H "Authorization: Bearer <accessToken>"
+git add -A
+git commit -m "étape 3"
+git push
 ```
 
 ## 6. Bloqué ?
@@ -168,4 +171,4 @@ curl -i -X DELETE http://localhost:3000/wallets/<walletId>/expenses/<expenseId> 
 npm run rattrapage -- 3
 ```
 
-Récupère le code de la fin de l'étape 3. Ensuite : [étape 4](etape-4.md).
+Récupère le code de la fin de l'étape 3. Ensuite, si vous avez le temps : le [bonus](bonus.md).
