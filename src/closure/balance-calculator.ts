@@ -93,16 +93,3 @@ export function computeTransfers(
 
   return transfers;
 }
-
-/**
- * TODO bonus : renvoyez le plus PETIT nombre possible de virements qui soldent
- * tous les comptes (le glouton de computeTransfers n'est pas toujours optimal).
- * Piste : trouver un maximum de sous-groupes dont la somme des soldes vaut 0 ;
- * un groupe de k personnes se règle en k - 1 virements.
- */
-export function minimizeTransfers(
-  balances: { userId: string; balance: number }[],
-): Transfer[] {
-  void balances;
-  throw new Error('TODO bonus : minimizeTransfers n’est pas encore écrite.');
-}
